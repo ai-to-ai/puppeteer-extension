@@ -82,7 +82,7 @@ io.on('connection', function(socket){
 // partsouq.csv save and create compare.csv
 app.post('/scrape',async(req,res)=>{
 
-  let {vin, ref, customerName, dueDate, cmpType, allowDuplicate, actionType, descChange} = req.body;
+  let {vin, ref, customerName, dueDate, cmpType, allowDuplicate, actionType, descChange, handType} = req.body;
   let pcScrapeData = req.body.data || ""
 
   if((vin === 'undefined') || 
