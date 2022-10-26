@@ -1,0 +1,398 @@
+{
+  "PORT": 9090,
+  "PC_URL": "https://partscheck.com.au",
+  "PS_URL": "https://partsouq.com",
+  "PC_FILE_NAME": "partscheck",
+  "PS_FILE_NAME": "partsouq",
+  "COMPARE_FILE_NAME": "compare",
+  "COMPARE_FILTER_FILE_NAME": "compare_filter",
+  "QUE_FILE_NAME": "que",
+  "LOG_FILE_NAME": "log",
+  "DB_NAME": "db",
+  "PROCESS_DB_NAME": "processed_db",
+  "RESULT_DIR_NAME": "result",
+  "TEMP_DIR_NAME": "tmp",
+  "POSSIBLE_ROW_LIMIT": 10,
+  "MAX_CATEGORY": 7,
+  "ALLOW_DUPLICATE": false,
+  "IGNORE_SPECIAL_CHARACTERS": true,
+  "LOGIC_LIMITS": {
+    "L1": "3",
+    "L2": "3",
+    "L3": "3",
+    "L4": "3",
+    "L5": "1",
+    "L6": "1",
+    "L7": "1",
+    "L8": "1"
+  },
+  "SCORE_DIVISION": {
+    "L1": 1,
+    "L2": 1,
+    "L3": 1,
+    "L4": 1,
+    "L5": 5,
+    "L6": 6,
+    "L7": 7,
+    "L8": 8
+  },
+  "FILTER_LIMIT": 1,
+  "COMPARE_CHECK": false,
+  "COMPARE_FILTER_CHECK": true,
+  "PARTCODES": {
+    "Kia": {
+      "type": "left",
+      "affix": "",
+      "pos": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Toyota": {
+      "type": "left",
+      "affix": "",
+      "pos": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Lexus": {
+      "type": "left",
+      "affix": "",
+      "pos": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Hyundai": {
+      "type": "left",
+      "affix": "",
+      "pos": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "Mazda": {
+      "type": "right",
+      "affix": "",
+      "pos": [
+        4,
+        3,
+        2
+      ],
+      "pos1": [
+        3,
+        2,
+        1
+      ]
+    }
+  },
+  "IGNORE_STRINGS": [
+    "assy",
+    "!6",
+    "5lt",
+    "ASCENT",
+    "UNIT",
+    "ASSEMBLY",
+    "P",
+    "X1",
+    "X2",
+    "X3",
+    "X4",
+    "X5",
+    "X6",
+    "X7",
+    "X8",
+    "X9",
+    "X10",
+    "X11",
+    "X12",
+    "X13",
+    "X14",
+    "X15",
+    "X16",
+    "X17",
+    "X18",
+    "X19",
+    "X20",
+    "X21",
+    "X22",
+    "X23",
+    "X24",
+    "X 1",
+    "X 2",
+    "X 3",
+    "X 4",
+    "X 5",
+    "X 6",
+    "X 7",
+    "X 8",
+    "X 9",
+    "X 10",
+    "X 11",
+    "X 12",
+    "X 13",
+    "X 14",
+    "X 15",
+    "X 16",
+    "X 17",
+    "X 18",
+    "X 19",
+    "X 20",
+    "X 21",
+    "X 22",
+    "X 23",
+    "X 24",
+    "P",
+    "RED",
+    "WHITE",
+    "SILVER",
+    "GREY",
+    "BLUE",
+    "BLACK"
+  ],
+  "SAME_STRINGS": {
+    "RH": [
+      "R/H",
+      "OS",
+      "O/S",
+      "RIGHT HAND",
+      "OFF SIDE",
+      "DRIVER SIDE",
+      "DRIVERS SIDE",
+      "RHS",
+      "R/H/S",
+      "R"
+    ],
+    "LH": [
+      "L/H",
+      "NS",
+      "N/S",
+      "LEFT HAND",
+      "NEAR SIDE",
+      "PASSENGER SIDE",
+      "PASSENGERS SIDE",
+      "LHS",
+      "L/H/S",
+      "L"
+    ],
+    "RHF": [
+      "R/H/F",
+      "OSF",
+      "O/S/F",
+      "RIGHT HAND FRONT",
+      "OFF SIDE FRONT",
+      "DRIVER SIDE FRONT",
+      "DRIVERS SIDE FRONT",
+      "RH FRONT",
+      "R/H FRONT",
+      "OS FRONT",
+      "O/S FRONT",
+      "RF",
+      "R/F",
+      "RIGHT FRONT",
+      "R/H /F"
+    ],
+    "LHF": [
+      "L/H/F",
+      "NSF",
+      "N/S/F",
+      "LEFT HAND FRONT",
+      "NEAR SIDE FRONT",
+      "PASSENGER SIDE FRONT",
+      "PASSENGERS SIDE FRONT",
+      "LH FRONT",
+      "L/H FRONT",
+      "NS FRONT",
+      "N/S FRONT",
+      "LF",
+      "L/F",
+      "LEFT FRONT",
+      "L/H /F"
+    ],
+    "RHR": [
+      "R/H/R",
+      "OSR",
+      "O/S/R",
+      "RIGHT HAND REAR",
+      "OFF SIDE REAR",
+      "DRIVER SIDE REAR",
+      "DRIVERS SIDE REAR",
+      "RH REAR",
+      "R/H REAR",
+      "OS REAR",
+      "O/S REAR",
+      "RR",
+      "R/R",
+      "RIGHT REAR",
+      "R/H /R"
+    ],
+    "FRONT": [
+      "FRT",
+      "F"
+    ],
+    "REAR": [
+      "R"
+    ],
+    "BAR": [
+      "BUMPER",
+      "B/BAR",
+      "B BAR"
+    ],
+    "GUARD": [
+      "GRD",
+      "FENDER"
+    ],
+    "BONNET": [
+      "BON",
+      "HOOD"
+    ],
+    "BRACKET": [
+      "BRKT",
+      "BRK"
+    ],
+    "MOULD": [
+      "MLD"
+    ],
+    "RETAINER": [
+      "SLIDE"
+    ],
+    "DOOR": [
+      "DR"
+    ],
+    "OUTER": [
+      "OTR"
+    ],
+    "INNER": [
+      "INR"
+    ],
+    "CHROME": [
+      "CHRM"
+    ],
+    "REINFORCEMET": [
+      "REIN",
+      "REO",
+      "REINF"
+    ],
+    "SPOILER": [
+      "LIP",
+      "LIP SPOILER",
+      "SPOILER LIP"
+    ],
+    "GRILLE": [
+      "GRL"
+    ],
+    "QUARTER": [
+      "QTR"
+    ],
+    "PANEL": [
+      "PNL"
+    ],
+    "POWER": [
+      "PWR"
+    ],
+    "COVER": [
+      "CVR"
+    ],
+    "LAMP": [
+      "LIGHT"
+    ],
+    "RAD": [
+      "RADIATOR"
+    ],
+    "SPT": [
+      "SUPPORT"
+    ],
+    "UPPER": [
+      "UPP",
+      "UPR"
+    ],
+    "VERTICAL": [
+      "VERT"
+    ],
+    "LOWER": [
+      "LWR"
+    ],
+    "INSULATOR": [
+      "SOUND PAD",
+      "SOUNDPAD"
+    ],
+    "FOG LAMP": [
+      "FOG LIGHT",
+      "FOGLAMP",
+      "FOGLIGHT",
+      "FOG"
+    ],
+    "LHR": [
+      "L/H/R",
+      "NSR",
+      "N/S/R",
+      "LEFT HAND REAR",
+      "NEAR SIDE REAR",
+      "PASSENGER SIDE REAR",
+      "PASSENGERS SIDE REAR",
+      "L/H REAR",
+      "NS REAR",
+      "N/S REAR",
+      "LR",
+      "L/R",
+      "LEFT REAR",
+      "L/H /R"
+    ]
+  },
+  "SCRAPE_CONFIG (copy)": {
+    "Kia": 0,
+    "Toyota": 0
+  },
+  "SCRAPE_TARGET": {
+    "Kia": {
+      "ENGINE": [
+        "ALL"
+      ],
+      "TRIM": [
+        "ALL"
+      ],
+      "BODY": [
+        "ALL"
+      ],
+      "ELECTRICAL": [
+        "ALL"
+      ]
+    },
+    "Hyundai": {
+      "ENGINE": [
+        "09-091",
+        "41-410A"
+      ]
+    },
+    "Toyota": {
+      "Engine/Fuel/Tool_X": [
+        "ALL"
+      ]
+    }
+  },
+  "INVOICE_URLS": [
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=08&Y=21",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=09&Y=21",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=10&Y=21",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=11&Y=21",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=12&Y=21",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=01&Y=22",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=02&Y=22",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=03&Y=22",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=04&Y=22",
+    "http://v1.partscheck.com.au/app/fees-invoice-report.php?type=0&M=05&Y=22"
+  ]
+}

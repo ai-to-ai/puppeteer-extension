@@ -1,0 +1,7 @@
+node_modules/
+tmp/
+result/
+chrome-win/
+node/
+database/
+config-editor/

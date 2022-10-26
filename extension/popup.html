@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet">
+    <style>
+      body {
+        font-size: 17px;
+        font-family: 'Source Sans Pro', sans-serif;
+
+      }
+      .btn {
+        background-color: #04AA6D!important;
+        border-radius: 5px;
+        padding: 6px 18px;
+        color: white;
+        border-color: white;
+        width: 250px;
+      }
+
+      select {
+        background-color: #04AA6D!important;
+        color: white;
+        padding: 6px 6px;
+        border: none;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        -webkit-appearance: button;
+        appearance: button;
+        outline: none;
+        width: 90%;
+        margin: 2px;
+      }
+
+      #saveFormatSelect {
+        width: 50%;
+      }
+      input[type=text] {
+        text-align: center;
+        width: 70%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        box-sizing: border-box;
+        border: 1px solid grey;
+        background-color: #aaedd4;
+        color: black;
+        height: 15px;
+        border-radius: 5px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div style="width: 300px; height: 650px;text-align: center;">
+        <h2>PartsCheck Automator</h2>
+        <hr>
+        <p>Scrape PartNumber</p>
+        <div>
+          <label for="saveFormatSelect">Save As:&ensp;</label>
+
+          <select name="saveFormatSelect" id="saveFormatSelect">
+              <option value="csv">CSV</option>
+              <option value="txt">TXT</option>
+          </select>
+        </div>
+        <div style="margin-top:5px">
+          <button style="cursor: pointer;" class="btn" id="scrape_part_nr">Scrape PartNumber</button>
+        </div>
+        <hr>
+        <p>Scrape Partsouq</p>
+        <div>
+          <input id="vin" type="text"></input>
+        </div>
+        <div style="margin-top:5px">
+          <button style="cursor: pointer;" class="btn" id="scrape_partsouq">Scrape Partsouq</button>
+        </div>
+        <hr>
+        <p>Scrape & Compare</p>
+        <div style="margin-top:5px">
+          <div style="width:50%; float: left;">
+            <select name="cmpType" id="cmpType">
+                <option value="1">Part Code</option>
+                <option value="2" selected>Description</option>
+                <option value="3">All</option>
+            </select>
+          </div>
+          <div style="width:50%; float: left;">
+            <select value="2" name="actionType" id="actionType">
+              <option value="0">Scrape Only</option>
+              <option value="1">Compare Only</option>
+              <option value="2" selected>Scrape & Compare</option>
+              <option value="3">Add to Que</option>
+              <option value="4">Scrape Que</option>
+          </select>
+          </div>
+            <input type="checkbox" style="padding:10px" checked id="allow_duplicate">Allow Duplicate</input>
+          <div>
+            <button style="cursor: pointer; margin-top:5px;" class="btn" id="scrape">Request
+            </button>
+          </div>
+        </div>      
+        <hr>
+        <p>Get Database</p>
+        <div>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="create_db_from_page">Get Database From current page
+          </button>
+        </div>
+        <div>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="create_db_from_list">Get Database From Links
+          </button>
+        </div>
+        <div>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="process_db">Process Database
+          </button>
+        </div>
+        <hr>
+        <p>Other</p>
+        <div>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="log_viewer">View Logs
+          </button>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="que_viewer">View Queue
+          </button>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="desc_change">Change Desc
+          </button>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="modify_config">Modify Config
+          </button>
+          <button style="cursor: pointer; margin-top:5px;" class="btn" id="handtype_list">Handtype List
+          </button>
+        </div>
+
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
