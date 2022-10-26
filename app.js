@@ -82,7 +82,7 @@ io.on('connection', function(socket){
 // partsouq.csv save and create compare.csv
 app.post('/scrape',async(req,res)=>{
 
-  let {vin, ref, customerName, dueDate, cmpType, allowDuplicate, actionType, descChange, handType} = req.body;
+  let {vin, ref, customerName, dueDate, cmpType, allowDuplicate, actionType, descChange} = req.body;
   let pcScrapeData = req.body.data || ""
 
   if((vin === 'undefined') || 
@@ -96,7 +96,7 @@ app.post('/scrape',async(req,res)=>{
       res.status(400).json({data:"Please check the current page."});
       return;
   }
-  console.log(descChange)
+  console.log(handType)
 
   ref = ref.replace("_","#")
   actionType = parseInt(actionType)
@@ -135,6 +135,10 @@ app.post('/scrape',async(req,res)=>{
   res.json({data:"Request process finished."})
 })
 
+app.post("/scrape_handtype", async(req,res) => {
+
+})
+
 app.post('/scrape_ps', async(req,res)=> {
   try {
     scrapePS("",req.body.vin,"","",true)    
@@ -143,15 +147,6 @@ app.post('/scrape_ps', async(req,res)=> {
   }
   res.json({data:"Scrape request finished for "+ req.vin})
 })
-
-// app.post('/scrape_ps_url', async(req,res)=> {
-//   try {
-//     scrapePS("",req.body.vin,"","",true)    
-//   } catch(err) {
-//     res.status(400).json({data:"Please check vin again."})
-//   }
-//   res.json({data:"Scrape request finished for "+ req.vin})
-// })
 
 // create database from current invoice page
 app.post('/create_db_from_page',async (req,res) =>{
