@@ -8,9 +8,12 @@ let perPage_que = 10
 let page_que = 1
 let perPage_log = 50
 let page_log = 1
-let descCmpType = 0
-let descAllowDuplicate = true
+let descCmpType = 1
+let descAllowDuplicate = false
 let descActionType = 0
+let handCmpType = 1
+let handAllowDuplicate = false
+let handActionType = 0
 
 let toast = document.createElement("div")
 toast.innerHTML += `<html>
@@ -67,6 +70,30 @@ const postRequest = (url, data) => fetch(url, {
       method: "POST",
       headers: {'Content-Type': 'application/json'}, 
       body: JSON.stringify(data)
+    }).then((response) => {
+      return new Promise((resolve) => response.json()
+        .then((json) => resolve({
+          status: response.status,
+          ok: response.ok,
+          json,
+        })));
+    }).then(({ status, json, ok }) => {
+      const message = json.data;
+      let color = 'black';
+      switch (status) {
+        case 400:
+          alert(message)
+          break;
+        case 200:
+          return json
+          break;
+      }
+    })
+
+const postFile = (url, file) => fetch(url, {
+      method: "POST",
+      headers: {'Content-Type': 'application/json'}, 
+      body: file
     }).then((response) => {
       return new Promise((resolve) => response.json()
         .then((json) => resolve({
@@ -1040,62 +1067,7 @@ async function handtypeList(){
     }
 }
 function initWindow_handtype_list(windowHandle) {
-    let vin = ""
-    let ref = ""
-    let customerName = ""
-    let dueDate = ""
     let partTextsArr = ""
-    let rows = document.getElementsByClassName("lineRow");
-
-    // vehicleInfos
-    let vehicleInfos = document.getElementsByClassName("quoteTitleContainer")
-    let vehicleInfo;
-
-    for(let i = 0; i < vehicleInfos.length ; i++){
-        if(vehicleInfos[i].previousElementSibling.innerText == "Vehicle Info")
-            vehicleInfo = vehicleInfos[i]
-        if(vehicleInfos[i].previousElementSibling.innerText == "General Info"){
-
-            let temp = vehicleInfos[i]
-            let tempColumns = temp.getElementsByClassName("quoteTitleContent");
-            if(tempColumns[0].innerText){
-                let innerText = tempColumns[0].innerText
-                dueDate = innerText.split("\n")[0] +" "+ innerText.split("\n")[2]
-            }
-
-            if(tempColumns[1].innerText){
-                let innerText = tempColumns[1].innerText
-                customerName = innerText.split("\n")[0] 
-            } 
-            ref = tempColumns[3].innerText
-        }
-    }
-    // column for vehicle.
-    let columnsForVehicles = vehicleInfo.getElementsByClassName("quoteTitle");
-    let columnsForVehicle = ""
-
-    for(let i = 0; i < columnsForVehicles.length ; i++){
-
-        columnsForVehicle += "," + columnsForVehicles[i].innerText
-    }
-
-    let columnsForTable = "Row,PartText,PartNumber"
-
-    // data for vehicle.
-    let dataForVehicles = vehicleInfo.getElementsByClassName("quoteTitleContent")
-    let dataForVehicle = ""
-
-    for(let i = 0; i < dataForVehicles.length; i++){
-
-        // check if the VIN input tag
-        if(dataForVehicles[i].childElementCount > 0){
-            dataForVehicle += "," + dataForVehicles[i].firstChild.defaultValue
-            vin = dataForVehicles[i].firstChild.defaultValue
-        }
-        else{
-            dataForVehicle += "," + (dataForVehicles[i].innerText ? dataForVehicles[i].innerText : "NA")
-        }
-    }
     windowHandle.document.write(`
         <head>
             <style>
@@ -1115,7 +1087,7 @@ function initWindow_handtype_list(windowHandle) {
                 color:white;
                 text-align:center;
             }
-            button {
+            button #file-btn {
                 background-color: #04AA6D!important;
                 border-radius: 5px;
                 padding: 6px 18px;
@@ -1168,6 +1140,9 @@ function initWindow_handtype_list(windowHandle) {
 
         <body>
             <h2 style="text-align:center;">Descrioption Changer</h2>
+            <hr>
+            <div style="display:flex;text-align:center;">Brand<input style="width:40%" type="text" id="brand"></input>Vin<input style="width:40%" type="text" id="vin"></input></div>
+            <hr>
             <div style=" display: flex; gap: 15px;">
                 <div style=" flex-grow: 1; ">
                     <table style=" width: 100%; text-align: left; ">
@@ -1175,21 +1150,28 @@ function initWindow_handtype_list(windowHandle) {
                             <tr>
                                 <th>No</th>
                                 <th style="text-align:center;">Description</th>
+                                <th style="text-align:center;">Number</th>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+
             <div style="text-align:center;">
                 <button type="button" id="add_row">Add row</button>
             </div>
+            <hr>
+            <form style="text-align:center;">
+                <span id="file-btn">Upload</span>
+                <input id="handtypeFile" type="file" style="display:none"></input>
+            </form>
             <div style="text-align:center;margin-top:20px;">
                 <hr>
                 <div style="margin-top:5px;padding-top:20px;">
                   <div style="width:50%; float: left;">
                     <select name="cmpType" id="cmpType">
+                        <option value="1" selected>Part Code</option>
                         <option value="2" selected>Description</option>
-                        <option value="3">All</option>
                     </select>
                   </div>
                   <div style="width:50%; float: left;">
@@ -1197,7 +1179,6 @@ function initWindow_handtype_list(windowHandle) {
                       <option value="0">Scrape Only</option>
                       <option value="1">Compare Only</option>
                       <option value="2">Scrape & Compare</option>
-                      <option value="3">Add to Que</option>
                   </select>
                   </div>
                     <input type="checkbox" style="padding:10px" id="allow_duplicate">Allow Duplicate</input>
@@ -1211,7 +1192,7 @@ function initWindow_handtype_list(windowHandle) {
     `);
     windowHandle.document.querySelector("#cmpType").addEventListener("change", async(e) => {
         e.preventDefault()
-        descCmpType = windowHandle.document.querySelector('#cmpType').value
+        handCmpType = windowHandle.document.querySelector('#cmpType').value
     })
     windowHandle.document.querySelector("#add_row").addEventListener("click", async(e) => {
         e.preventDefault()
@@ -1219,55 +1200,69 @@ function initWindow_handtype_list(windowHandle) {
         let trsLength = tbody.querySelectorAll("tr").length
         let tr = windowHandle.document.createElement('tr')
 
-        tr.innerHTML += `<tr><td>${trsLength}</td><td style="text-align:center;"><input style="width:90%" id="parttext_${trsLength}" ></input></td></tr>`
+        tr.innerHTML += `<tr><td>${trsLength}</td><td style="text-align:center;"><input style="width:90%" id="parttext_${trsLength}" ></input></td><td style="text-align:center;"><input style="width:90%" id="partnumber_${trsLength}" ></input></td></tr>`
         tbody.appendChild(tr)
     })
     windowHandle.document.querySelector("#actionType").addEventListener("change", async(e) => {
         e.preventDefault()
-        descActionType = windowHandle.document.querySelector('#actionType').value
+        handActionType = windowHandle.document.querySelector('#actionType').value
     })
     windowHandle.document.querySelector("#allow_duplicate").addEventListener("change", async(e) => {
         e.preventDefault()
-        descAllowDuplicate = windowHandle.document.querySelector('#allow_duplicate').checked
+        handAllowDuplicate = windowHandle.document.querySelector('#allow_duplicate').checked
     })
     windowHandle.document.querySelector("#scrape").addEventListener("click", async(e) => {
        
         e.preventDefault()
-        let modifiedList = windowHandle.document.querySelectorAll("body > div > div > table > tbody > tr > td:nth-child(2) > input")
-        partTextsArr = columnsForTable + columnsForVehicle + "\n";
-        for(let i = 0; i < modifiedList.length ; i++){
+        let partTextlist = windowHandle.document.querySelectorAll("body > div > div > table > tbody > tr > td:nth-child(2) > input")
+        let partNumberlist = windowHandle.document.querySelectorAll("body > div > div > table > tbody > tr > td:nth-child(3) > input")
+        let brand = windowHandle.document.querySelector("#brand").value
+        let vin = windowHandle.document.querySelector("#vin").value
+        partTextsArr = "Row,PartText,PartNumber,Brand" + "\n";
+        let realIndex = 0;
+        for(let i = 0; i < partTextlist.length ; i++){
 
-        let partNumber = ""
-        let partText = modifiedList[i].value
-        partText = partText.replace(/\s\s+/g, ' ');
-        if(partText !== ""){
-            // Table rows.
-            let rowText = i + ","
-                         + partText + ","
-                         + partNumber
-                         + dataForVehicle
-                         + "\n";
-            // Add table rows
-            partTextsArr += rowText;
-        }
-        
-    }
-    ref = ref.replace("#","_")
-       postRequest(`http://localhost:9090/scrape`,
-        {
-            ref: ref,
-            vin: vin,
-            customerName: customerName,
-            dueDate: dueDate,
-            cmpType: descCmpType,
-            allowDuplicate: descAllowDuplicate,
-            actionType: descActionType,
-            data: partTextsArr,
-            descChange: true,
+            let partNumber = partNumberlist[i].value || ""
+            let partText = partTextlist[i].value
+            partText = partText.replace(/\s\s+/g, ' ');
+            if(partText !== ""){
+                // Table rows.
+                let rowText = realIndex + ","
+                             + partText + ","
+                             + partNumber + ","
+                             + brand
+                             + "\n";
+                // Add table rows
+                partTextsArr += rowText;
+                realIndex++
+            }
             
-        }).then(res => {
-            if(descActionType == 3) queViewer()
-        })
+        }
+       //  var textFile = windowHandle.document.querySelector('#textFile')
+       //  var numberFile = windowHandle.document.querySelector('#numberFile')
+
+       //  var data = new FormData()
+       //  data.append('textFile', textFile.files[0])
+       //  data.append('numberFile', numberFile.files[0])
+       //  data.append('vin', vin)
+       //  data.append('cmpType', handCmpType)
+       //  data.append('allowDuplicate', handAllowDuplicate)
+       //  data.append('actionType', handActionType)
+       //  data.append('brand', brand)
+       //  data.append('data', partTextsArr)
+       //  data.append('vin', vin)
+
+       // postFile(`http://localhost:9090/scrape_handtype`, data).then(res => {
+       //  })
+      // postRequest(`http://localhost:9090/scrape_handtype`, {
+      //   vin:vin,
+      //   cmpType:handCmpType,
+      //   allowDuplicate,handAllowDuplicate,
+      //   actionType, handActionType,
+      //   brand, brand,
+      //   data, partTextsArr
+      // }).then(res => {
+      //   })
     })
 
 }

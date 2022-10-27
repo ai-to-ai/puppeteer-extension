@@ -11,6 +11,8 @@ const bodyParser = require('body-parser')
 const readline = require('readline')
 const PromisePool = require('es6-promise-pool');
 const wordsSimilarity = require('words-similarity');
+const path = require("path");
+const formidable = require('formidable');
 const config = require('./config/index.json')
 const dbCodeTable = require('./database/db_code.json')
 const dbAlterDescTable = require('./database/db_alter_desc.json')
@@ -48,14 +50,14 @@ puppeteer.use(repl)
 app.use(cors())
 app.use(bodyParser.json({limit:'64mb'}))
 app.use(express.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
-console.log("Read log")
 let log
 try {
-  log = fs.readFileSync(__dirname+"\\"+ config.TEMP_DIR_NAME + "\\" + config.LOG_FILE_NAME + ".txt")
+  // log = fs.readFileSync(__dirname+"\\"+ config.TEMP_DIR_NAME + "\\" + config.LOG_FILE_NAME + ".txt")
+  log = fs.readFileSync(path.join(__dirname,config.TEMP_DIR_NAME,config.LOG_FILE_NAME+".log"))
   log = JSON.parse(log)
 } catch (err) {
-  console.log(err)
   log = []
 }
 
@@ -65,7 +67,6 @@ socketServer.listen(8080, function(){
 });
 
 io.on('connection', function(socket){
-  console.log('Socket connection established');
 
   socket.emit('log',{log:log.slice(0,10), total:log.length});
 
@@ -136,6 +137,38 @@ app.post('/scrape',async(req,res)=>{
 })
 
 app.post("/scrape_handtype", async(req,res) => {
+  var form = new formidable.IncomingForm();
+  form.parse(req, function (err, fields, files) {
+      console.log(fileds)
+    });
+
+  let handData = req.body.data
+  let vin = req.body.vin
+  let brand = req.body.brand
+  let allowDuplicate = req.body.allowDuplicate
+  let cmpType = req.body.cmpType
+  let actionType =req.body.actionType
+  try {
+
+    switch (actionType){
+      case SCRAPE_ONLY: 
+          savePCData("","","","",handData,true)
+          await scrapePS("",vin,"","", false,true)
+          break;
+      case COMPARE_ONLY:
+          compare("", vin,"", "", cmpType, allowDuplicate, true);
+          break;
+      case SCRAPE_COMPARE:
+          savePCData("","","","",handData,true)
+           await scrapePS("",vin,"","", false,true)
+          compare("", vin,"", "", cmpType, allowDuplicate, true);
+          break;
+    }
+  } catch(err) {
+    console.log(err)
+    io.emit("err", {err:"Scrapping by handtype list \n"+err.message})
+  }
+  
 
 })
 
@@ -170,7 +203,8 @@ app.post('/create_db_from_page',async (req,res) =>{
   let dbScrapeData = await scrapeInvoiceUrls(urls, cookies)
 
   try {
-    fs.appendFileSync(__dirname+"\\database\\"+config.DB_NAME+".csv", dbScrapeData)
+    // fs.appendFileSync(__dirname+"\\database\\"+config.DB_NAME+".csv", dbScrapeData)
+    fs.appendFileSync(path.join(__dirname,"database",config.DB_NAME+".csv"), dbScrapeData)
     console.log("Database saved.")
   } catch(err){
     console.log(err)
@@ -231,7 +265,8 @@ app.post("/create_db_from_list",async(req,res) => {
 
     let dbScrapeData = await scrapeInvoiceUrls(urls, cookies)
     try {
-      fs.appendFileSync(__dirname+"\\database\\"+config.DB_NAME+".csv", dbScrapeData);
+      fs.appendFileSync(path.join(__dirname,"database",config.DB_NAME+".csv"), dbScrapeData);
+      // fs.appendFileSync(__dirname+"\\database\\"+config.DB_NAME+".csv", dbScrapeData);
       console.log("Database with List saved.")
     } catch(err){
       console.log(err)
@@ -335,7 +370,8 @@ app.post("/modify_config", (req,res) => {
     return
   }
   try {
-    let modifyConfig = fs.readFileSync(__dirname + "\\config\\index.json")
+    let modifyConfig = fs.readFileSync(path.join(__dirname,"config","index.json"))
+    // let modifyConfig = fs.readFileSync(__dirname + "\\config\\index.json")
     let data = JSON.parse(modifyConfig)
 
     if(parseInt(actionType) == CONFIG_FILTER_ADD){
@@ -382,8 +418,6 @@ app.post("/modify_config", (req,res) => {
       
       let idx = category.findIndex(el => el == subCat)
       if(idx < 0 ) {
-        let allIdx = category.findIndex(el => el.toLowerCase() == "all")
-        if(allIdx < 0) category.push("ALL")
         category.push(subCat)
       }    
     } else if ( parseInt(actionType) == CONFIG_IGNORE_REMOVE) {
@@ -404,7 +438,8 @@ app.post("/modify_config", (req,res) => {
 
     let result = JSON.stringify(data)
     result = result.replace(/\,/ig,",\n")
-    fs.writeFileSync(__dirname + "\\config\\index.json", result)
+    fs.writeFileSync(path.join(__dirname,"config","index.json"), result)
+    // fs.writeFileSync(__dirname + "\\config\\index.json", result)
     console.log("Config "+(actionType? "Added":"Removed")+" Brand ==>"+brand +" Category==>"+catText + " SubCategory ==>"+ subCat)
   } catch (err) {
     console.log(err)
@@ -413,17 +448,32 @@ app.post("/modify_config", (req,res) => {
   res.json({data:"Config change request finished"})
 })
 
-function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", dueDate = "", cmpType=2, allowDuplicate = true){
+function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", dueDate = "", cmpType=2, allowDuplicate = true, isHandType = false){
   ref = ref.replace("_","#")
 
-  let pcFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.PC_FILE_NAME + '.csv'
-  let psFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.PS_FILE_NAME + '.csv'
-  let cmpFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.COMPARE_FILE_NAME + '.csv'
-  let cmpFilterFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.COMPARE_FILTER_FILE_NAME + '.csv'
-  let processDbPath = __dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv'
+  let pcFilePath = path.join(__dirname,config.RESULT_DIR_NAME,ref +"_"+ vin,config.PC_FILE_NAME + '.csv')
+  // let pcFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.PC_FILE_NAME + '.csv'
+  let cmpFilePath = path.join(__dirname, config.RESULT_DIR_NAME,ref +"_"+ vin,config.COMPARE_FILE_NAME + '.csv')
+  // let cmpFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.COMPARE_FILE_NAME + '.csv'
+  let cmpFilterFilePath = path.join(__dirname, config.RESULT_DIR_NAME, ref +"_"+ vin, config.COMPARE_FILTER_FILE_NAME + '.csv')
+  // let cmpFilterFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.COMPARE_FILTER_FILE_NAME + '.csv'
+  let processDbPath = path.join(__dirname ,config.DATABASE_DIR_NAME, config.PROCESS_DB_NAME + '.csv')
+  // let processDbPath = __dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv'
+  let psFilePath = path.join(__dirname, config.RESULT_DIR_NAME,ref +"_"+ vin, config.PS_FILE_NAME + '.csv')
+  // let psFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin + "\\"+config.PS_FILE_NAME + '.csv'
 
-  const pcFile = fs.readFileSync(pcFilePath, 'utf-8');
-  const psFile = fs.readFileSync(psFilePath, 'utf-8');
+  let handTypeFilePath = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME, config.HANDTYPE_LIST_FILE_NAME+".csv")
+  // let handTypeFilePath = __dirname + "\\" +config.RESULT_DIR_NAME + "\\handtype\\list.csv"
+  let handTypePSPath = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME, config.PS_FILE_NAME+".csv")
+  // let handTypePSPath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\"+config.PS_FILE_NAME+".csv"
+  let handTypeCmpFilePath = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME ,config.COMPARE_FILE_NAME + ".csv")
+  // let handTypeCmpFilePath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\" + config.COMPARE_FILE_NAME + ".csv"
+  let handTypeCmpFilterFilePath = path.join( __dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME, config.COMPARE_FILE_NAME + ".csv")
+  // let handTypeCmpFilterFilePath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\" + config.COMPARE_FILE_NAME + ".csv"
+
+
+  const pcFile = fs.readFileSync(isHandType?handTypeFilePath:pcFilePath, 'utf-8');
+  const psFile = fs.readFileSync(isHandType?handTypePSPath:psFilePath, 'utf-8');
 
   let cmpData = "Line,PC Desc,PC Number,PC Code(setting),PS Desc,PS Number,PS Code,PS Code(setting),Qty,Matched,Logic Number, Score, DB desc, PC duplicate, Filter Status\n"
   let cmpFilterData = []
@@ -1023,11 +1073,13 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
 
   // create new directory
   try {
-      // first check if directory already exists
-      if (!fs.existsSync(ibcDir)) {
-          fs.mkdirSync(ibcDir);
-      } 
+    if(isHandType){
+        fs.writeFileSync(handTypeCmpFilePath  ,cmpData);
+        console.log(handTypeCmpFilePath + " is saved!");
+        fs.writeFileSync(handTypeCmpFilterFilePath, cmpFilterResult);
+        console.log(handTypeCmpFilterFilePath + " is saved!");
 
+    } else {
       fs.writeFileSync(cmpFilePath, cmpData);
       console.log(cmpFilePath + " is saved!");
       logHandler(LOG_COMPARE, ref, vin , customerName, dueDate )
@@ -1037,9 +1089,15 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
       console.log(cmpFilterFilePath + " is saved!");
       logHandler(LOG_COMPARE_FILTER, ref, vin , customerName, dueDate)
 
+      // first check if directory already exists
+      if (!fs.existsSync(ibcDir)) {
+          fs.mkdirSync(ibcDir);
+      } 
       fs.writeFileSync(ibcFilePath, ibcText);
       console.log(ibcFilePath + " is saved!");
-      logHandler(LOG_IBC, ref, vin , customerName, dueDate)
+      logHandler(LOG_IBC, ref, vin , customerName, dueDate)      
+    }
+      
 
   } catch (err) {
     console.log(err.message)
@@ -1053,8 +1111,10 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
 
 
 function queHandler(queActionType, ref = "53972", vin = "JTNKU3JEX0J093205", customerName = "", dueDate = "", pcScrapeData = ""){
-  let dir = __dirname + "\\" +config.TEMP_DIR_NAME
-  let queFilePath = dir +"\\" +config.QUE_FILE_NAME +".txt"
+  let dir = path.join(__dirname, config.TEMP_DIR_NAME)
+  // let dir = __dirname + "\\" +config.TEMP_DIR_NAME
+  let queFilePath = path.join(dir, config.QUE_FILE_NAME +".que")
+  // let queFilePath = dir +"\\" +config.QUE_FILE_NAME +".txt"
 
   // create new directory
   try {
@@ -1103,9 +1163,10 @@ function queHandler(queActionType, ref = "53972", vin = "JTNKU3JEX0J093205", cus
 }
 
 function logHandler(logType = 0, ref = "53972", vin = "JTNKU3JEX0J093205", customerName = "", dueDate = "" ){
-  let dir = __dirname + "\\" +config.TEMP_DIR_NAME
+  let dir = path.join(__dirname, config.TEMP_DIR_NAME)
+  // let dir = __dirname + "\\" +config.TEMP_DIR_NAME
 
-  let logFilePath = dir +"\\" +config.LOG_FILE_NAME +".txt"
+  let logFilePath = path.join(dir, config.LOG_FILE_NAME +".log")
   // create new directory
   try {
     // first check if directory already exists
@@ -1174,39 +1235,59 @@ function logHandler(logType = 0, ref = "53972", vin = "JTNKU3JEX0J093205", custo
   }
 }
 
-function savePCData(ref = "53972", vin = "JTNKU3JEX0J093205",customerName = "", dueDate ="", pcScrapeData = ""){
-  let dir = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin
+function savePCData(ref = "53972", vin = "JTNKU3JEX0J093205",customerName = "", dueDate ="", pcScrapeData = "", isHandType = false){
+  let dir = path.join(__dirname, config.RESULT_DIR_NAME, ref +"_"+ vin)
+  // let dir = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ vin
+  let handTypeDir = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME)
+  // let handTypeDir = __dirname+"\\" +config.RESULT_DIR_NAME + "\\handtype"
 
-  let pcFilePath = dir +"\\" +config.PC_FILE_NAME +".csv"
+
+  let pcFilePath = path.join(dir, config.PC_FILE_NAME +".csv")
+  // let pcFilePath = dir +"\\" +config.PC_FILE_NAME +".csv"
+  let pcHandPath = path.join(handTypeDir, config.HANDTYPE_LIST_FILE_NAME + ".csv")
+  // let pcHandPath = handTypeDir +"\\" +"list.csv"
   // create new directory
   try {
     // first check if directory already exists
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    if(isHandType) {
+      if (!fs.existsSync(handTypeDir)) fs.mkdirSync(handTypeDir);
 
-    fs.writeFileSync(pcFilePath, pcScrapeData);
-    console.log(pcFilePath + " is saved!");
-    logHandler(LOG_PC, ref, vin , customerName, dueDate)
+      fs.writeFileSync(pcHandPath, pcScrapeData);
+      console.log(pcHandPath + " is saved!");
+    } else {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
-
+      fs.writeFileSync(pcFilePath, pcScrapeData);
+      console.log(pcFilePath + " is saved!");
+      logHandler(LOG_PC, ref, vin , customerName, dueDate)
+    }
+    
   } catch(err) {
     throw err
   }
 }
 
-async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName = "", dueDate = "", isPure = false){
+async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName = "", dueDate = "", isPure = false, isHandType = false){
   let isURL = false
   if(vin.includes("https")) isURL = true
-  let dir = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ (isURL? "":vin)
-  let psFilePath = dir + "\\"+config.PS_FILE_NAME+".csv"
+  let dir = path.join(__dirname, config.RESULT_DIR_NAME, ref +"_"+ (isURL? "":vin))
+  // let dir = __dirname + "\\" +config.RESULT_DIR_NAME + "\\" + ref +"_"+ (isURL? "":vin)
+  let psFilePath = path.join(dir, config.PS_FILE_NAME+".csv")
+  // let psFilePath = dir + "\\"+config.PS_FILE_NAME+".csv"
 
-  let pureDir = __dirname + "\\" + config.RESULT_DIR_NAME
-  let purePSFilePath = pureDir + "\\" + (isURL?"ps_url_scrape.csv":(vin + "_fullDB.csv")) 
+  let pureDir = path.join(__dirname, config.RESULT_DIR_NAME)
+  // let pureDir = __dirname + "\\" + config.RESULT_DIR_NAME
+  let purePSFilePath = path.join(pureDir, (isURL? URL_SCRAPE_FILE_NAME :(vin + "_" + config.VIN_SCRAPE_FILE_SUFFIX))+".csv") 
+  // let purePSFilePath = pureDir + "\\" + (isURL?"ps_url_scrape.csv":(vin + "_fullDB.csv")) 
 
+  let handTypeDir = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME)
+  // let handTypeDir = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype"
+  let handTypeFilePath = path.join(handTypeDir, config.PS_FILE_NAME + ".csv")
+  // let handTypeFilePath = pureDir + "\\" + config.PS_FILE_NAME + ".csv"
 
   const browser = await puppeteer.launch({ headless: true });
 
   const defaultPage =  await browser.newPage()
-  console.log(defaultPage)
   defaultPage.setDefaultNavigationTimeout(0);
 
   let defaultURL = isURL ? vin : `${config.PS_URL}/en/search/all?q=${vin}`
@@ -1235,7 +1316,6 @@ async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName =
     }
   })
 
-  console.log(categories)
   let brand = await defaultPage.$eval(".breadcrumb > li:nth-child(3)",c => c.innerText)
 
 
@@ -1253,22 +1333,21 @@ async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName =
     await page.waitForSelector('.simple-container');
 
     let scrapeTarget = config.SCRAPE_TARGET[brand.trim()]
+
+    let isIgnoreList = config.SCRAPE_CONFIG[brand.trim()] || 1
     
     let subCategories = await page.$$(".thumb-boss")
     for(let i = 0; i < subCategories.length; i++){
       try {
-        let isAll = false
         let canIgnore = false
 
         let subCatText = await subCategories[i].evaluate(s => s.innerText)
 
-        if(scrapeTarget && scrapeTarget[catText] && scrapeTarget[catText][0] && scrapeTarget[catText][0].toLowerCase() == "all") isAll = true
+        let isTargetExist = scrapeTarget ? (scrapeTarget[(catText+isIgnoreList?"_X":"")] ? scrapeTarget[(catText+isIgnoreList?"_X":"")].find(sc => sc == subCatText.split(":")[0]): null) : null     
 
-        let isTargetExist = scrapeTarget ? (scrapeTarget[catText] ? scrapeTarget[catText].find(sc => sc == subCatText.split(":")[0]): null) : null     
-
-        if((!isTargetExist && scrapeTarget && !isAll) || (isAll && isTargetExist)) canIgnore = true
-
-        console.log("Category: " + catId +"====>"+ catText +" SubCategory: " + i + "====> "+subCatText + " Ignore===>"+ canIgnore)
+        if((!isTargetExist && scrapeTarget && !isIgnoreList) || (isIgnoreList && isTargetExist)) canIgnore = true
+          console.log(catText)
+        console.log("Category: " + catId +"====>"+ (catText+isIgnoreList?"_X":"") +" SubCategory: " + i + "====> "+subCatText + " Ignore===>"+ canIgnore)
 
         if(!canIgnore)
         {
@@ -1354,15 +1433,22 @@ async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName =
   console.log("Browser closed!")
   await browser.close();
   try {
-    if(!isPure){
-      fs.writeFileSync(psFilePath, psScrapeData)
-      console.log(psFilePath + " is saved!");
-      logHandler(LOG_PS, ref, vin, customerName, dueDate)
+    if(isHandType){
+      if (!fs.existsSync(handTypeDir)) {
+          fs.mkdirSync(handTypeDir);
+      } 
+      console.log(handTypeFilePath + " is saved!");
+      fs.writeFileSync(handTypeFilePath, psScrapeData)
     } else {
-      console.log(purePSFilePath + " is saved!");
-      fs.writeFileSync(purePSFilePath, psScrapeData)
+      if(!isPure){
+        fs.writeFileSync(psFilePath, psScrapeData)
+        console.log(psFilePath + " is saved!");
+        logHandler(LOG_PS, ref, vin, customerName, dueDate)
+      } else {
+        console.log(purePSFilePath + " is saved!");
+        fs.writeFileSync(purePSFilePath, psScrapeData)
+      }
     }
-    
   } catch(err){
     throw err
   }
@@ -1370,8 +1456,10 @@ async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName =
 }
 
 function scrapeQue(cmpType = 1, allowDuplicate = true){
-  let dir = __dirname + "\\" +config.TEMP_DIR_NAME
-  let queFilePath = dir +"\\" +config.QUE_FILE_NAME +".txt"
+  let dir = path.join(__dirname, config.TEMP_DIR_NAME)
+  // let dir = __dirname + "\\" +config.TEMP_DIR_NAME
+  let queFilePath = path.join(dir, config.QUE_FILE_NAME +".que")
+  // let queFilePath = dir +"\\" +config.QUE_FILE_NAME +".txt"
 
   let que = []
   if(fs.existsSync(queFilePath)){
@@ -1395,11 +1483,16 @@ function scrapeQue(cmpType = 1, allowDuplicate = true){
 }
 function dbIndexing(){
   console.log('DB indexing...')
-  const codeIndexPath = __dirname + "\\database\\db_code.json"
-  const alterDescPath = __dirname + "\\database\\db_alter_desc.json"
-  const descPath = __dirname + "\\database\\db_desc.json"
+  const codeIndexPath = path.join(__dirname, config.DATABASE_DIR_NAME, config.DB_CODE_INDEX_FILE_NAME +".json")
+  const alterDescPath = path.join(__dirname, config.DATABASE_DIR_NAME, config.DB_ALTER_DESC_FILE_NAME + ".json")
+  const descPath = path.join(__dirname, config.DATABASE_DIR_NAME, config.DB_DESC_FILE_NAME + ".json")
+  const processDbPath = path.join(__dirname,config.DATABASE_DIR_NAME, config.PROCESS_DB_NAME + '.csv')
+  //  const codeIndexPath = __dirname + "\\database\\db_code.json"
+  // const alterDescPath = __dirname + "\\database\\db_alter_desc.json"
+  // const descPath = __dirname + "\\database\\db_desc.json"
   const file = readline.createInterface({
-    input: fs.createReadStream(__dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv')
+    input: fs.createReadStream(processDbPath)
+    // input: fs.createReadStream(__dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv')
   })
 
   const rows = []
@@ -1451,117 +1544,6 @@ function dbIndexing(){
     }
   })
 
-}
-function makeCodeIndexTable(){
-  const filePath = __dirname + "\\database\\db_code.json"
-  const file = readline.createInterface({
-    input: fs.createReadStream(__dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv')
-  })
-
-  const rows = []
-  let obj = {}
-
-  let lineCount = 0
-  file.on('line', line => {
-      let [brand, supplier, partNumber, desc, partCode, score] = line.split(",")
-      if(!obj[partCode]){
-        obj[partCode] = []
-      }
-      let subObj = {}
-      subObj.brand = brand
-      subObj.desc = desc
-      subObj.score = score
-
-      obj[partCode].push(subObj)
-  })
-
-  file.on('close', () => {
-    // console.log(obj)
-    let result = JSON.stringify(obj)
-
-      fs.writeFile(filePath, result, function(err) {
-        if(err) {
-          io.emit('err',{err:err.message})
-            return console.log(err);
-        }
-        console.log(filePath + " is saved!");
-      });
-  })
-}
-
-function makeAlterDescTable(){
-  const filePath = __dirname + "\\database\\db_alter_desc.json"
-  const file = readline.createInterface({
-    input: fs.createReadStream(__dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv')
-  })
-
-  const rows = []
-  let obj = {}
-
-  let lineCount = 0
-  file.on('line', line => {
-      let [brand, supplier, partNumber, desc, partCode, score] = line.split(",")
-      let sameDesc = getSameString(desc)
-      if(!obj[sameDesc]){
-        obj[sameDesc] = []
-      }
-      let subObj = {}
-      subObj.brand = brand
-      subObj.score = score
-      subObj.code = partCode
-      subObj.desc = desc
-      obj[sameDesc].push(subObj)
-  })
-
-  file.on('close', () => {
-    // console.log(obj)
-    let result = JSON.stringify(obj)
-
-      fs.writeFile(filePath, result, function(err) {
-        if(err) {
-          io.emit('err',{err:err.message})
-            return console.log(err);
-        }
-        console.log(filePath + " is saved!");
-      });
-  })
-}
-
-function makeDescTable(){
-  const filePath = __dirname + "\\database\\db_desc.json"
-  const file = readline.createInterface({
-    input: fs.createReadStream(__dirname + "\\database\\" + config.PROCESS_DB_NAME + '.csv')
-  })
-
-  const rows = []
-  let obj = {}
-
-  let lineCount = 0
-  file.on('line', line => {
-      let [brand, supplier, partNumber, desc, partCode, score] = line.split(",")
-      if(!obj[getCleanString(desc)]){
-        obj[getCleanString(desc)] = []
-      }
-      let subObj = {}
-      subObj.brand = brand
-      subObj.score = score
-      subObj.code = partCode
-      subObj.desc = desc
-      obj[getCleanString(desc)].push(subObj)
-  })
-
-  file.on('close', () => {
-    // console.log(obj)
-    let result = JSON.stringify(obj)
-
-      fs.writeFile(filePath, result, function(err) {
-        if(err) {
-          io.emit('err',{err:err.message})
-            return console.log(err);
-        }
-        console.log(filePath + " is saved!");
-      });
-  })
 }
 
 function getCleanString(str){
@@ -1702,8 +1684,11 @@ function getCode(brand,partNumber) {
 }
 
 function processDb(){
+  const dbPath = path.join(__dirname, config.DATABASE_DIR_NAME, config.DB_NAME + ".csv")
+  const processDbPath = path.join(__dirname, config.DATABASE_DIR_NAME, config.PROCESS_DB_NAME + ".csv")
   const file = readline.createInterface({
-    input: fs.createReadStream(__dirname + "\\database\\" + config.DB_NAME + '.csv')
+    input: fs.createReadStream(dbPath)
+    // input: fs.createReadStream(__dirname + "\\database\\" + config.DB_NAME + '.csv')
   })
 
   const rows = []
@@ -1767,7 +1752,8 @@ function processDb(){
     result += resultRow.join("\n")
 
     try {
-      fs.writeFileSync(__dirname+"\\database\\"+ config.PROCESS_DB_NAME +".csv", result)
+      fs.writeFileSync(processDbPath, result)
+      // fs.writeFileSync(__dirname+"\\database\\"+ config.PROCESS_DB_NAME +".csv", result)
       dbIndexing()
       console.log("Processed Database is saved!");      
     } catch(err){
@@ -1808,7 +1794,6 @@ function getSameString(str){
 }
 
 async function scrapeInvoiceUrls(urls, cookies){
-  console.log(urls.length)
   let dbScrapeData = ""
 
   if(urls && urls.length > 0) {

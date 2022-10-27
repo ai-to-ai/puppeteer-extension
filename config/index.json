@@ -8,7 +8,15 @@
   "COMPARE_FILTER_FILE_NAME": "compare_filter",
   "QUE_FILE_NAME": "que",
   "LOG_FILE_NAME": "log",
+  "DATABASE_DIR_NAME": "database",
+  "HANDTYPE_DIR_NAME": "handtype",
+  "HANDTYPE_LIST_FILE_NAME": "handtype_list.csv",
+  "URL_SCRAPE_FILE_NAME": "ps_url_scrape",
+  "VIN_SCRAPE_FILE_SUFFIX": "full_db",
   "DB_NAME": "db",
+  "DB_CODE_INDEX_FILE_NAME": "db_code",
+  "DB_ALTER_DESC_FILE_NAME": "db_alter_desc",
+  "DB_DESC_FILE_NAME": "db_desc",
   "PROCESS_DB_NAME": "processed_db",
   "RESULT_DIR_NAME": "result",
   "TEMP_DIR_NAME": "tmp",
@@ -352,34 +360,27 @@
       "L/H /R"
     ]
   },
-  "SCRAPE_CONFIG (copy)": {
+  "SCRAPE_CONFIG": {
     "Kia": 0,
     "Toyota": 0
   },
   "SCRAPE_TARGET": {
     "Kia": {
       "ENGINE": [
-        "ALL"
+      ],
+      "ENGINE_X": [
       ],
       "TRIM": [
-        "ALL"
+      ],
+      "TRIM_X": [
       ],
       "BODY": [
-        "ALL"
+      ],
+      "BODY_X": [
       ],
       "ELECTRICAL": [
-        "ALL"
-      ]
-    },
-    "Hyundai": {
-      "ENGINE": [
-        "09-091",
-        "41-410A"
-      ]
-    },
-    "Toyota": {
-      "Engine/Fuel/Tool_X": [
-        "ALL"
+      ],
+      "ELECTRICAL_X": [
       ]
     }
   },
