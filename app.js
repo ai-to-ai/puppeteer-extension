@@ -50,7 +50,7 @@ puppeteer.use(repl)
 app.use(cors())
 app.use(bodyParser.json({limit:'64mb'}))
 app.use(express.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({extended: false }));
 
 let log
 try {
@@ -97,10 +97,11 @@ app.post('/scrape',async(req,res)=>{
       res.status(400).json({data:"Please check the current page."});
       return;
   }
-  console.log(handType)
 
   ref = ref.replace("_","#")
   actionType = parseInt(actionType)
+  cmpType = parseInt(cmpType)
+  allowDuplicate = allowDuplicate == 'true'
   try {
     switch (actionType){
       case SCRAPE_ONLY: 
@@ -138,36 +139,50 @@ app.post('/scrape',async(req,res)=>{
 
 app.post("/scrape_handtype", async(req,res) => {
   var form = new formidable.IncomingForm();
-  form.parse(req, function (err, fields, files) {
-      console.log(fileds)
+  form.parse(req, async function (err, fields, files) {
+    try {
+      let brand = fields.brand
+      let handData = ""
+      if(files.file !== undefined){
+        handData = "Row, PartText, PartNumber, Brand\n"
+        let tempData = fs.readFileSync(files.file.filepath).toString()
+        console.log(tempData)
+        tempData.split(/\r?\n/).forEach((row,i) => {
+          console.log(i)
+          let partText = row.split(",")[0] || ""
+          let partNumber = row.split(",")[1] || ""
+          handData += (i + "," + partText + "," + partNumber + "," + brand + "\n")
+        })
+      } else handData = fields.data
+
+      console.log(handData)
+      let vin = fields.vin
+      
+      let allowDuplicate = fields.allowDuplicate == 'true'
+      let cmpType = parseInt(fields.cmpType)
+      let actionType =parseInt(fields.actionType)
+
+        switch (actionType){
+          case SCRAPE_ONLY: 
+              savePCData("","","","",handData,true)
+              await scrapePS("",vin,"","", false,true)
+              break;
+          case COMPARE_ONLY:
+              compare("", vin,"", "", cmpType, allowDuplicate, true);
+              break;
+          case SCRAPE_COMPARE:
+              savePCData("","","","",handData,true)
+               await scrapePS("",vin,"","", false,true)
+              compare("", vin,"", "", cmpType, allowDuplicate, true);
+              break;
+        }
+      } catch(err) {
+        console.log(err)
+        io.emit("err", {err:"Scrapping by handtype list \n"+err.message})
+      }
     });
 
-  let handData = req.body.data
-  let vin = req.body.vin
-  let brand = req.body.brand
-  let allowDuplicate = req.body.allowDuplicate
-  let cmpType = req.body.cmpType
-  let actionType =req.body.actionType
-  try {
 
-    switch (actionType){
-      case SCRAPE_ONLY: 
-          savePCData("","","","",handData,true)
-          await scrapePS("",vin,"","", false,true)
-          break;
-      case COMPARE_ONLY:
-          compare("", vin,"", "", cmpType, allowDuplicate, true);
-          break;
-      case SCRAPE_COMPARE:
-          savePCData("","","","",handData,true)
-           await scrapePS("",vin,"","", false,true)
-          compare("", vin,"", "", cmpType, allowDuplicate, true);
-          break;
-    }
-  } catch(err) {
-    console.log(err)
-    io.emit("err", {err:"Scrapping by handtype list \n"+err.message})
-  }
   
 
 })
@@ -468,12 +483,12 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
   // let handTypePSPath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\"+config.PS_FILE_NAME+".csv"
   let handTypeCmpFilePath = path.join(__dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME ,config.COMPARE_FILE_NAME + ".csv")
   // let handTypeCmpFilePath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\" + config.COMPARE_FILE_NAME + ".csv"
-  let handTypeCmpFilterFilePath = path.join( __dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME, config.COMPARE_FILE_NAME + ".csv")
+  let handTypeCmpFilterFilePath = path.join( __dirname, config.RESULT_DIR_NAME, config.HANDTYPE_DIR_NAME, config.COMPARE_FILTER_FILE_NAME + ".csv")
   // let handTypeCmpFilterFilePath = __dirname + "\\" + config.RESULT_DIR_NAME + "\\handtype\\" + config.COMPARE_FILE_NAME + ".csv"
 
 
-  const pcFile = fs.readFileSync(isHandType?handTypeFilePath:pcFilePath, 'utf-8');
-  const psFile = fs.readFileSync(isHandType?handTypePSPath:psFilePath, 'utf-8');
+  const pcFile = fs.readFileSync((isHandType?handTypeFilePath:pcFilePath), 'utf-8');
+  const psFile = fs.readFileSync((isHandType?handTypePSPath:psFilePath), 'utf-8');
 
   let cmpData = "Line,PC Desc,PC Number,PC Code(setting),PS Desc,PS Number,PS Code,PS Code(setting),Qty,Matched,Logic Number, Score, DB desc, PC duplicate, Filter Status\n"
   let cmpFilterData = []
@@ -487,6 +502,8 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
       let pcDesc = pcRow.split(",")[1] || ""
       let pcNumber = pcRow.split(",")[2] || ""
       let pcBrand = pcRow.split(",")[3] || ""
+
+      console.log(pcDesc+pcNumber+pcBrand)
 
       if(!(pcDesc == "" && pcNumber == "" && pcBrand == "")) 
       {
@@ -749,7 +766,7 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
 
               notBlank = true
             }
-
+            console.log(cmpRowData)
             if(cmpRowData){
 
               if(config.COMPARE_CHECK){
@@ -817,6 +834,7 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
       }
     }
   });
+
 
   let cmpFilterResult = "Line,PC Desc,PC Number,PC Code(setting),PS Desc,PS Number,PS Code,PS Code(setting),Qty,Matched,Logic Number, Score, DB Desc, PC duplicate, Filter Status\n"
   let filterRow = []
@@ -1044,6 +1062,8 @@ function compare(ref = "23256", vin = "6T1BF3FK70X006743", customerName = "", du
     else return row 
   })
   cmpData = newMarkCmpRow.join("\n")
+
+  console.log(cmpData)
 
   cmpFilterResult += filterRow.join("\n")        
   
@@ -1343,11 +1363,11 @@ async function scrapePS(ref = "53972", vin = "JTNKU3JEX0J093205", customerName =
 
         let subCatText = await subCategories[i].evaluate(s => s.innerText)
 
-        let isTargetExist = scrapeTarget ? (scrapeTarget[(catText+isIgnoreList?"_X":"")] ? scrapeTarget[(catText+isIgnoreList?"_X":"")].find(sc => sc == subCatText.split(":")[0]): null) : null     
+        let isTargetExist = scrapeTarget ? (scrapeTarget[(catText+(isIgnoreList?"_X":""))] ? scrapeTarget[(catText+(isIgnoreList?"_X":""))].find(sc => sc == subCatText.split(":")[0]): null) : null     
 
         if((!isTargetExist && scrapeTarget && !isIgnoreList) || (isIgnoreList && isTargetExist)) canIgnore = true
           console.log(catText)
-        console.log("Category: " + catId +"====>"+ (catText+isIgnoreList?"_X":"") +" SubCategory: " + i + "====> "+subCatText + " Ignore===>"+ canIgnore)
+        console.log("Category: " + catId +"====>"+ (catText+(isIgnoreList?"_X":"")) +" SubCategory: " + i + "====> "+subCatText + " Ignore===>"+ canIgnore)
 
         if(!canIgnore)
         {
@@ -1899,15 +1919,15 @@ function getDupList(arr, val) {
    return indexes;
 }
 
-app.listen(config.PORT,()=>{
-    console.log(`Scrapping App is running on : ${config.PORT}`)
-});
+// app.listen(config.PORT,()=>{
+//     console.log(`Scrapping App is running on : ${config.PORT}`)
+// });
 
 // dbIndexing()
 // makeCodeIndexTable()
 // makeDescTable()
 // makeAlterDescTable()
-// compare()
+compare()
 // console.log("Ready")
 
 // console.log(getSimpleString("Front B/Bar Cover Upper"))

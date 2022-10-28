@@ -8,12 +8,12 @@ let perPage_que = 10
 let page_que = 1
 let perPage_log = 50
 let page_log = 1
-let descCmpType = 1
+let descCmpType = 2
 let descAllowDuplicate = false
-let descActionType = 0
-let handCmpType = 1
+let descActionType = 2
+let handCmpType = 2
 let handAllowDuplicate = false
-let handActionType = 0
+let handActionType = 2
 
 let toast = document.createElement("div")
 toast.innerHTML += `<html>
@@ -92,7 +92,6 @@ const postRequest = (url, data) => fetch(url, {
 
 const postFile = (url, file) => fetch(url, {
       method: "POST",
-      headers: {'Content-Type': 'application/json'}, 
       body: file
     }).then((response) => {
       return new Promise((resolve) => response.json()
@@ -902,7 +901,7 @@ function initWindow_desc(windowHandle) {
                     <select name="actionType" id="actionType">
                       <option value="0">Scrape Only</option>
                       <option value="1">Compare Only</option>
-                      <option value="2">Scrape & Compare</option>
+                      <option value="2" selected>Scrape & Compare</option>
                       <option value="3">Add to Que</option>
                   </select>
                   </div>
@@ -1087,7 +1086,17 @@ function initWindow_handtype_list(windowHandle) {
                 color:white;
                 text-align:center;
             }
-            button #file-btn {
+            button  {
+                background-color: #04AA6D!important;
+                border-radius: 5px;
+                padding: 6px 18px;
+                color: white;
+                border-color: white;
+                width: 100px;
+                cursor:pointer;
+            }
+
+            #file-btn  {
                 background-color: #04AA6D!important;
                 border-radius: 5px;
                 padding: 6px 18px;
@@ -1162,15 +1171,15 @@ function initWindow_handtype_list(windowHandle) {
             </div>
             <hr>
             <form style="text-align:center;">
-                <span id="file-btn">Upload</span>
-                <input id="handtypeFile" type="file" style="display:none"></input>
+                <label for="handtypeFile">Upload</label>
+                <input id="handtypeFile" type="file"  ></input>
             </form>
             <div style="text-align:center;margin-top:20px;">
                 <hr>
                 <div style="margin-top:5px;padding-top:20px;">
                   <div style="width:50%; float: left;">
                     <select name="cmpType" id="cmpType">
-                        <option value="1" selected>Part Code</option>
+                        <option value="1">Part Code</option>
                         <option value="2" selected>Description</option>
                     </select>
                   </div>
@@ -1178,7 +1187,7 @@ function initWindow_handtype_list(windowHandle) {
                     <select name="actionType" id="actionType">
                       <option value="0">Scrape Only</option>
                       <option value="1">Compare Only</option>
-                      <option value="2">Scrape & Compare</option>
+                      <option value="2" selected>Scrape & Compare</option>
                   </select>
                   </div>
                     <input type="checkbox" style="padding:10px" id="allow_duplicate">Allow Duplicate</input>
@@ -1238,22 +1247,20 @@ function initWindow_handtype_list(windowHandle) {
             }
             
         }
-       //  var textFile = windowHandle.document.querySelector('#textFile')
-       //  var numberFile = windowHandle.document.querySelector('#numberFile')
+        var handtypeFile = windowHandle.document.querySelector('#handtypeFile')
 
-       //  var data = new FormData()
-       //  data.append('textFile', textFile.files[0])
-       //  data.append('numberFile', numberFile.files[0])
-       //  data.append('vin', vin)
-       //  data.append('cmpType', handCmpType)
-       //  data.append('allowDuplicate', handAllowDuplicate)
-       //  data.append('actionType', handActionType)
-       //  data.append('brand', brand)
-       //  data.append('data', partTextsArr)
-       //  data.append('vin', vin)
+        var data = new FormData()
+        data.append('file', handtypeFile.files[0])
+        data.append('vin', vin)
+        data.append('cmpType', handCmpType)
+        data.append('allowDuplicate', handAllowDuplicate)
+        data.append('actionType', handActionType)
+        data.append('brand', brand)
+        data.append('data', partTextsArr)
+        data.append('vin', vin)
 
-       // postFile(`http://localhost:9090/scrape_handtype`, data).then(res => {
-       //  })
+       postFile(`http://localhost:9090/scrape_handtype`, data).then(res => {
+        })
       // postRequest(`http://localhost:9090/scrape_handtype`, {
       //   vin:vin,
       //   cmpType:handCmpType,

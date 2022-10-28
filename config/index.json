@@ -10,7 +10,7 @@
   "LOG_FILE_NAME": "log",
   "DATABASE_DIR_NAME": "database",
   "HANDTYPE_DIR_NAME": "handtype",
-  "HANDTYPE_LIST_FILE_NAME": "handtype_list.csv",
+  "HANDTYPE_LIST_FILE_NAME": "handtype_list",
   "URL_SCRAPE_FILE_NAME": "ps_url_scrape",
   "VIN_SCRAPE_FILE_SUFFIX": "full_db",
   "DB_NAME": "db",
